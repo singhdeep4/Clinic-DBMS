@@ -49,6 +49,14 @@ const MEDICINE_PRESETS = [
   "Dashmoolarishta", "Trikatu Churna", "Avipattikar Churna"
 ];
 
+// Common clinical complaint presets
+const COMPLAINT_PRESETS = [
+  "Bloating / Ajeerna", "Acidity / Amlapitta", "Constipation / Vibandha",
+  "Cough / Kasa", "Joint Pain / Sandhishoola", "Lower Back Pain / Katishoola",
+  "Insomnia / Anidra", "Fatigue / Klama", "Skin Rash / Twak Vikara",
+  "Headache / Shirashoola", "Stress & Anxiety", "Hair Loss / Khalitya"
+];
+
 const LAB_PANELS = {
   Glycemic: [
     { testName: "Fasting Blood Sugar (FBS)", value: "", range: "70-100", unit: "mg/dL" },
@@ -84,6 +92,7 @@ const DEFAULT_STATE = {
   
   // Chief Complaints (Multiple items)
   complaints: [{ text: "", onsetDate: "" }],
+  complaintsProgress: {},
   
   // Ayurvedic Core (Appetite, bowel, sleep)
   kshudha: "Sama",
@@ -201,9 +210,37 @@ export default function DbmsDashboard() {
       // 3. Fetch Live Queue
       const queue = await getAllItems("queue");
       setLiveQueue(queue);
+
+      // 4. Load draft if exists
+      const draft = localStorage.getItem("ayurkaya_workspace_draft");
+      if (draft) {
+        try {
+          const parsed = JSON.parse(draft);
+          setCurrentCase(parsed);
+          triggerNotification("Restored unsaved workspace draft.");
+        } catch (e) {
+          console.error("Error loading draft:", e);
+        }
+      }
     }
     loadData();
   }, [isAuthenticated]);
+
+  // Auto-save active workspace draft
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    const hasData = (currentCase.name && currentCase.name.trim() !== "") || 
+                    (currentCase.mobile && currentCase.mobile.trim() !== "") || 
+                    (currentCase.complaints.length > 1 || (currentCase.complaints[0] && currentCase.complaints[0].text !== "")) ||
+                    (currentCase.medicines.length > 1 || (currentCase.medicines[0] && currentCase.medicines[0].name !== ""));
+                    
+    if (hasData) {
+      localStorage.setItem("ayurkaya_workspace_draft", JSON.stringify(currentCase));
+    } else {
+      localStorage.removeItem("ayurkaya_workspace_draft");
+    }
+  }, [currentCase, isAuthenticated]);
 
   // Sequential Patient ID Generator
   const generateNextPatientId = async () => {
@@ -299,6 +336,19 @@ export default function DbmsDashboard() {
   const addComplaint = () => {
     const updated = [...currentCase.complaints, { text: "", onsetDate: "" }];
     setCurrentCase({ ...currentCase, complaints: updated });
+  };
+
+  const addComplaintPreset = (text) => {
+    const existsEmpty = currentCase.complaints.findIndex(c => c.text === "");
+    if (existsEmpty !== -1) {
+      const updated = [...currentCase.complaints];
+      updated[existsEmpty].text = text;
+      updated[existsEmpty].onsetDate = new Date().toISOString().split("T")[0];
+      setCurrentCase({ ...currentCase, complaints: updated });
+    } else {
+      const updated = [...currentCase.complaints, { text, onsetDate: new Date().toISOString().split("T")[0] }];
+      setCurrentCase({ ...currentCase, complaints: updated });
+    }
   };
 
   const updateComplaint = (index, field, value) => {
@@ -524,6 +574,7 @@ export default function DbmsDashboard() {
         visitId: "VIS-" + Date.now(),
         visitDate: currentCase.visitDate || new Date().toISOString(),
         complaints: JSON.parse(JSON.stringify(currentCase.complaints || [])),
+        complaintsProgress: JSON.parse(JSON.stringify(currentCase.complaintsProgress || {})),
         kshudha: currentCase.kshudha || "Sama",
         mutra: currentCase.mutra || "Normal",
         mala: currentCase.mala || "Normal",
@@ -567,6 +618,7 @@ export default function DbmsDashboard() {
         followUpSymptoms: "Same",
         followUpAgni: "Same",
         followUpTreatment: "Continued",
+        complaintsProgress: {},
         visits: updatedVisits
       };
 
@@ -1792,7 +1844,74 @@ export default function DbmsDashboard() {
 
               {/* Tab 2: Complaints & History */}
               {activeTab === "complaints" && (
-                <div className="space-y-6">
+                <div className="space-y-6 animate-fadeIn">
+                  
+                  {/* Previous Visit Complaints Progress Tracker */}
+                  {currentCase.visits && currentCase.visits.length > 0 && (
+                    <div className="bg-brand-cream border border-brand-light/60 p-6 rounded-3xl space-y-4 shadow-sm animate-fadeIn">
+                      <h4 className="font-serif text-lg font-bold text-brand-primary border-b border-brand-light/40 pb-2 flex justify-between items-center flex-wrap gap-2">
+                        <span>🔄 Previous Visit Complaints Progress Tracker</span>
+                        <span className="text-[10px] text-brand-secondary/85 font-semibold">Last consult: {new Date(currentCase.visits[0].visitDate).toLocaleDateString()}</span>
+                      </h4>
+                      <p className="text-xs text-brand-dark/60 leading-relaxed">
+                        Track progress of complaints reported during the last visit. Click a status to update:
+                      </p>
+                      <div className="space-y-3.5 pt-2">
+                        {currentCase.visits[0].complaints?.filter(c => c.text).map((c, i) => {
+                          const progressKey = c.text.trim();
+                          const currentProgress = currentCase.complaintsProgress?.[progressKey] || "Stable";
+                          return (
+                            <div key={i} className="flex justify-between items-center bg-brand-beige/25 p-3.5 rounded-2xl border border-brand-light/35 flex-wrap gap-2">
+                              <span className="text-xs font-bold text-brand-primary capitalize">{c.text}</span>
+                              <div className="flex gap-1.5 flex-wrap">
+                                {["Cured", "Improved", "Stable", "Worse"].map(status => (
+                                  <button
+                                    key={status}
+                                    type="button"
+                                    onClick={() => {
+                                      const updatedProgress = { ...(currentCase.complaintsProgress || {}) };
+                                      updatedProgress[progressKey] = status;
+                                      setCurrentCase({ ...currentCase, complaintsProgress: updatedProgress });
+                                    }}
+                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer border ${
+                                      currentProgress === status
+                                        ? status === "Cured" ? "bg-green-100 text-green-800 border-green-300" :
+                                          status === "Improved" ? "bg-blue-100 text-blue-800 border-blue-300" :
+                                          status === "Stable" ? "bg-amber-100 text-amber-800 border-amber-300" :
+                                          "bg-red-100 text-red-800 border-red-350"
+                                        : "bg-white text-gray-500 border-brand-light/50 hover:bg-gray-50"
+                                    }`}
+                                  >
+                                    {status}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Rapid Entry Presets (Common Complaints) */}
+                  <div className="bg-brand-cream border border-brand-light/60 p-5 rounded-3xl space-y-3 shadow-sm">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-brand-primary block">
+                      Rapid Entry Presets (Common Complaints)
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {COMPLAINT_PRESETS.map((text) => (
+                        <button
+                          key={text}
+                          type="button"
+                          onClick={() => addComplaintPreset(text)}
+                          className="bg-brand-beige hover:bg-brand-light border border-brand-light/65 text-brand-primary px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                        >
+                          + {text}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="bg-brand-cream border border-brand-light/60 p-6 rounded-3xl space-y-4 shadow-sm">
                     <div className="flex justify-between items-center border-b border-brand-light/40 pb-2">
                       <h3 className="font-serif text-xl font-bold text-brand-primary">
