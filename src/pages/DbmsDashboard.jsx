@@ -298,7 +298,9 @@ export default function DbmsDashboard() {
     }
   };
 
-  // Auto-fill or find matching patient profiles when 10-digit mobile is typed
+  // Show matching patient profiles when 10-digit mobile is typed.
+  // We NEVER auto-fill data — the doctor must explicitly click a patient to load them.
+  // This mirrors real hospital software (no unexpected data overwriting).
   useEffect(() => {
     const cleanMobile = (currentCase.mobile || "").replace(/[^0-9]/g, "");
     if (cleanMobile.length === 10) {
@@ -306,28 +308,12 @@ export default function DbmsDashboard() {
         try {
           const registry = await getAllItems("registry");
           const matches = registry.filter(r => (r.mobile || "").replace(/[^0-9]/g, "") === cleanMobile);
-          setMatchingPatients(matches);
-          
-          // If there is exactly 1 match and form fields are empty, auto-fill it
-          if (matches.length === 1 && !currentCase.patientId && !currentCase.name.trim()) {
-            const patient = matches[0];
-            
-            // Try to find if there's an existing case sheet in savedCases to load full clinical data
-            const existingCase = savedCases.find(c => c.patientId === patient.patientId);
-            if (existingCase) {
-              setCurrentCase({ ...existingCase });
-              triggerNotification(`Loaded patient record for ${patient.name}.`);
-            } else {
-              setCurrentCase(prev => ({
-                ...prev,
-                patientId: patient.patientId,
-                name: patient.name || "",
-                age: patient.age || "",
-                gender: patient.gender || "Male",
-                occupation: patient.occupation || ""
-              }));
-              triggerNotification(`Loaded profile details for ${patient.name}.`);
-            }
+          // Only show picker if the workspace is currently empty (no patient loaded yet)
+          // This avoids interrupting an active consultation
+          if (!currentCase.patientId) {
+            setMatchingPatients(matches);
+          } else {
+            setMatchingPatients([]);
           }
         } catch (err) {
           console.error("Error reading registry:", err);
@@ -337,7 +323,7 @@ export default function DbmsDashboard() {
     } else {
       setMatchingPatients([]);
     }
-  }, [currentCase.mobile, savedCases]);
+  }, [currentCase.mobile, currentCase.patientId]);
 
   const triggerNotification = (msg) => {
     setNotification(msg);
@@ -1728,7 +1714,7 @@ export default function DbmsDashboard() {
                       </div>
 
                       <div className="relative">
-                        <label className="block text-xs font-bold text-brand-primary uppercase tracking-wider mb-2">Mobile Number (Registry Lookup)</label>
+                        <label className="block text-xs font-bold text-brand-primary uppercase tracking-wider mb-2">Mobile Number <span className="text-brand-secondary/70 normal-case font-semibold tracking-normal">(type to search registry → click to load)</span></label>
                         <input
                           type="tel"
                           value={currentCase.mobile}
@@ -1737,11 +1723,11 @@ export default function DbmsDashboard() {
                           className="w-full bg-brand-beige border border-brand-light/50 px-4 py-3 rounded-xl text-sm focus:outline-none focus:border-brand-secondary"
                         />
                         
-                        {/* Inline Multiple Patient Picker */}
+                        {/* Inline Multiple Patient Picker — user must CLICK to load, never auto-loads */}
                         {matchingPatients.length > 0 && (
                           <div className="absolute z-20 left-0 right-0 mt-2 bg-brand-cream border border-brand-light p-4 rounded-2xl shadow-xl space-y-2 animate-fadeIn max-h-[220px] overflow-y-auto">
                             <div className="text-[10px] font-bold text-brand-primary/80 uppercase tracking-wide border-b border-brand-light/45 pb-1">
-                              Registered profiles sharing this number:
+                              👇 Click a name below to load patient record:
                             </div>
                             <div className="space-y-1">
                               {matchingPatients.map(p => (
@@ -1912,56 +1898,67 @@ export default function DbmsDashboard() {
                 <div className="space-y-6 animate-fadeIn">
                   
                   {/* Previous Visit Complaints Progress Tracker */}
-                  {currentCase.visits && currentCase.visits.length > 0 && (
-                    <div className="bg-brand-cream border border-brand-light/60 p-6 rounded-3xl space-y-4 shadow-sm animate-fadeIn">
-                      <h4 className="font-serif text-lg font-bold text-brand-primary border-b border-brand-light/40 pb-2 flex justify-between items-center flex-wrap gap-2">
-                        <span>🔄 Previous Visit Complaints Progress Tracker</span>
-                        <span className="text-[10px] text-brand-secondary/85 font-semibold">Last consult: {new Date(currentCase.visits[0].visitDate).toLocaleDateString()}</span>
-                      </h4>
-                      <p className="text-xs text-brand-dark/60 leading-relaxed">
-                        Track progress of complaints reported during the last visit. Click a status to update:
-                      </p>
-                      <div className="space-y-3.5 pt-2">
-                        {currentCase.visits[0].complaints?.filter(c => c.text).map((c, i) => {
-                          const progressKey = c.text.trim();
-                          const currentProgress = currentCase.complaintsProgress?.[progressKey] || "Stable";
-                          return (
-                            <div key={i} className="flex justify-between items-center bg-brand-beige/25 p-3.5 rounded-2xl border border-brand-light/35 flex-wrap gap-2">
-                              <span className="text-xs font-bold text-brand-primary capitalize">{c.text}</span>
-                              <div className="flex gap-1.5 flex-wrap">
-                                {["Cured", "Improved", "Stable", "Worse"].map(status => (
-                                  <button
-                                    key={status}
-                                    type="button"
-                                    onClick={() => {
-                                      const updatedProgress = { ...(currentCase.complaintsProgress || {}) };
-                                      updatedProgress[progressKey] = status;
-                                      const newScore = calculateAutoOutcomeScore(updatedProgress, currentCase.visits[0].complaints);
-                                      setCurrentCase({ 
-                                        ...currentCase, 
-                                        complaintsProgress: updatedProgress,
-                                        outcomeScore: newScore
-                                      });
-                                    }}
-                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer border ${
-                                      currentProgress === status
-                                        ? status === "Cured" ? "bg-green-100 text-green-800 border-green-300" :
-                                          status === "Improved" ? "bg-blue-100 text-blue-800 border-blue-300" :
-                                          status === "Stable" ? "bg-amber-100 text-amber-800 border-amber-300" :
-                                          "bg-red-100 text-red-800 border-red-350"
-                                        : "bg-white text-gray-500 border-brand-light/50 hover:bg-gray-50"
-                                    }`}
-                                  >
-                                    {status}
-                                  </button>
-                                ))}
+                  {currentCase.visits && currentCase.visits.length > 0 && (() => {
+                    const lastVisit = currentCase.visits[0];
+                    // Filter out complaints that were already marked "Cured" in the LAST visit's progress.
+                    // If the doctor marked a complaint Cured at the previous visit, it should NOT show here again.
+                    const pendingComplaints = (lastVisit.complaints || []).filter(c => {
+                      if (!c.text) return false;
+                      const wasAlreadyCured = lastVisit.complaintsProgress?.[c.text.trim()] === "Cured";
+                      return !wasAlreadyCured;
+                    });
+                    if (pendingComplaints.length === 0) return null;
+                    return (
+                      <div className="bg-brand-cream border border-brand-light/60 p-6 rounded-3xl space-y-4 shadow-sm animate-fadeIn">
+                        <h4 className="font-serif text-lg font-bold text-brand-primary border-b border-brand-light/40 pb-2 flex justify-between items-center flex-wrap gap-2">
+                          <span>🔄 Previous Visit Complaints Progress Tracker</span>
+                          <span className="text-[10px] text-brand-secondary/85 font-semibold">Last consult: {new Date(lastVisit.visitDate).toLocaleDateString()}</span>
+                        </h4>
+                        <p className="text-xs text-brand-dark/60 leading-relaxed">
+                          Update the progress of active complaints from the last visit. Cured complaints are automatically excluded:
+                        </p>
+                        <div className="space-y-3.5 pt-2">
+                          {pendingComplaints.map((c, i) => {
+                            const progressKey = c.text.trim();
+                            const currentProgress = currentCase.complaintsProgress?.[progressKey] || "Stable";
+                            return (
+                              <div key={i} className="flex justify-between items-center bg-brand-beige/25 p-3.5 rounded-2xl border border-brand-light/35 flex-wrap gap-2">
+                                <span className="text-xs font-bold text-brand-primary capitalize">{c.text}</span>
+                                <div className="flex gap-1.5 flex-wrap">
+                                  {["Cured", "Improved", "Stable", "Worse"].map(status => (
+                                    <button
+                                      key={status}
+                                      type="button"
+                                      onClick={() => {
+                                        const updatedProgress = { ...(currentCase.complaintsProgress || {}) };
+                                        updatedProgress[progressKey] = status;
+                                        const newScore = calculateAutoOutcomeScore(updatedProgress, pendingComplaints);
+                                        setCurrentCase({ 
+                                          ...currentCase, 
+                                          complaintsProgress: updatedProgress,
+                                          outcomeScore: newScore
+                                        });
+                                      }}
+                                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer border ${
+                                        currentProgress === status
+                                          ? status === "Cured" ? "bg-green-100 text-green-800 border-green-300" :
+                                            status === "Improved" ? "bg-blue-100 text-blue-800 border-blue-300" :
+                                            status === "Stable" ? "bg-amber-100 text-amber-800 border-amber-300" :
+                                            "bg-red-100 text-red-800 border-red-350"
+                                          : "bg-white text-gray-500 border-brand-light/50 hover:bg-gray-50"
+                                      }`}
+                                    >
+                                      {status}
+                                    </button>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Rapid Entry Presets (Common Complaints) */}
                   <div className="bg-brand-cream border border-brand-light/60 p-5 rounded-3xl space-y-3 shadow-sm">
