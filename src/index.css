@@ -1,9 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300;400;500;600;700;800&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap');
 @import "tailwindcss";
 
 @theme {
-  /* Public site (light theme) */
+  /* Public site */
   --color-brand-primary: #1b4332;
   --color-brand-secondary: #2d6a4f;
   --color-brand-light: #e8f5e9;
@@ -12,262 +11,66 @@
   --color-brand-cream: #faf5ec;
   --color-brand-accent: #d88c51;
   --font-serif: "Playfair Display", Georgia, serif;
-  --font-sans: "Inter", "Plus Jakarta Sans", sans-serif;
-
-  /* HMIS Portal (dark theme) */
-  --color-hm-base:     #0b0e18;
-  --color-hm-surface:  #111827;
-  --color-hm-card:     #1a2236;
-  --color-hm-border:   #2a3a55;
-  --color-hm-em:       #10b981;
-  --color-hm-em-dim:   #065f46;
-  --color-hm-gold:     #f59e0b;
-  --color-hm-indigo:   #818cf8;
-  --color-hm-rose:     #f43f5e;
-  --color-hm-text:     #e2e8f0;
-  --color-hm-muted:    #64748b;
-  --color-hm-subtle:   #334155;
+  --font-sans: "Inter", sans-serif;
 }
 
 @layer base {
-  html {
-    scroll-behavior: smooth;
-    font-family: var(--font-sans);
-    background-color: var(--color-brand-beige);
-    color: var(--color-brand-dark);
-  }
-  body {
-    @apply antialiased;
-  }
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-serif);
-  }
+  html { scroll-behavior: smooth; font-family: "Inter", sans-serif; background: #fdfbf7; color: #0d2818; }
+  body { @apply antialiased; }
+  h1, h2, h3, h4, h5, h6 { font-family: "Playfair Display", Georgia, serif; }
 }
 
-/* ─── HMIS PORTAL GLOBAL OVERRIDES ─── */
+/* Public scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f0f4f8; }
+::-webkit-scrollbar-thumb { background: #c8d9cf; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #2d6a4f; }
+
+/* ═══════════════════════════════════════════════════
+   HMIS PORTAL — PREMIUM LIGHT DESIGN SYSTEM
+   ═══════════════════════════════════════════════════ */
 .hmis-root {
-  font-family: var(--font-sans);
-  background-color: var(--color-hm-base);
-  color: var(--color-hm-text);
+  font-family: "Inter", sans-serif;
+  background: linear-gradient(135deg, #f0fdf4 0%, #fafffe 40%, #f0f9ff 100%);
   min-height: 100vh;
+  position: fixed;
+  inset: 0;
   overflow: hidden;
 }
-.hmis-root h1,
-.hmis-root h2,
-.hmis-root h3,
-.hmis-root h4,
-.hmis-root h5,
-.hmis-root h6 {
-  font-family: var(--font-sans);
-  font-weight: 700;
-}
 
-/* Scrollbar */
-.hmis-root ::-webkit-scrollbar { width: 5px; height: 5px; }
-.hmis-root ::-webkit-scrollbar-track { background: var(--color-hm-surface); }
-.hmis-root ::-webkit-scrollbar-thumb { background: var(--color-hm-border); border-radius: 99px; }
-.hmis-root ::-webkit-scrollbar-thumb:hover { background: var(--color-hm-muted); }
+/* Premium scrollbar inside portal */
+.hmis-root ::-webkit-scrollbar { width: 4px; height: 4px; }
+.hmis-root ::-webkit-scrollbar-track { background: transparent; }
+.hmis-root ::-webkit-scrollbar-thumb { background: #d1fae5; border-radius: 99px; }
+.hmis-root ::-webkit-scrollbar-thumb:hover { background: #6ee7b7; }
 
-/* Public page scrollbar */
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: var(--color-brand-beige); }
-::-webkit-scrollbar-thumb { background: var(--color-brand-secondary); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-brand-primary); }
-
-/* ─── ANIMATIONS ─── */
+/* ── ANIMATIONS ── */
 @keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity:0; transform:translateY(16px); }
+  to   { opacity:1; transform:translateY(0); }
 }
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.6; }
+  from { opacity:0; }
+  to   { opacity:1; }
 }
 @keyframes slideInRight {
-  from { transform: translateX(100%); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
+  from { transform:translateX(110%); opacity:0; }
+  to   { transform:translateX(0);    opacity:1; }
 }
 @keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
+  0%   { background-position:-200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes popIn {
+  0%   { transform: scale(0.92); opacity:0; }
+  100% { transform: scale(1);    opacity:1; }
+}
+@keyframes pulse-dot {
+  0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+  50%     { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
 }
 
-.animate-fade-up   { animation: fadeSlideUp 0.35s ease both; }
-.animate-fade-in   { animation: fadeIn 0.25s ease both; }
-.animate-slide-in  { animation: slideInRight 0.3s cubic-bezier(.16,1,.3,1) both; }
-.animate-pulse-soft{ animation: pulse-soft 2s ease-in-out infinite; }
-
-/* ─── HMIS SHARED CARD / INPUT STYLES ─── */
-.hm-card {
-  background: var(--color-hm-card);
-  border: 1px solid var(--color-hm-border);
-  border-radius: 16px;
-  padding: 20px 24px;
-}
-.hm-input {
-  background: var(--color-hm-surface);
-  border: 1px solid var(--color-hm-border);
-  color: var(--color-hm-text);
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 13px;
-  width: 100%;
-  outline: none;
-  transition: border-color 0.2s;
-}
-.hm-input:focus {
-  border-color: var(--color-hm-em);
-  box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
-}
-.hm-input::placeholder { color: var(--color-hm-muted); }
-.hm-input-sm {
-  padding: 7px 12px;
-  font-size: 12px;
-}
-.hm-select {
-  background: var(--color-hm-surface);
-  border: 1px solid var(--color-hm-border);
-  color: var(--color-hm-text);
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 13px;
-  width: 100%;
-  outline: none;
-  cursor: pointer;
-  transition: border-color 0.2s;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-  padding-right: 36px;
-}
-.hm-select:focus { border-color: var(--color-hm-em); }
-.hm-label {
-  display: block;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-hm-muted);
-  margin-bottom: 6px;
-}
-.hm-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-  outline: none;
-  padding: 9px 16px;
-}
-.hm-btn-primary {
-  background: var(--color-hm-em);
-  color: #0b0e18;
-}
-.hm-btn-primary:hover { background: #059669; }
-.hm-btn-secondary {
-  background: var(--color-hm-card);
-  border: 1px solid var(--color-hm-border);
-  color: var(--color-hm-text);
-}
-.hm-btn-secondary:hover { background: var(--color-hm-border); }
-.hm-btn-ghost {
-  background: transparent;
-  color: var(--color-hm-muted);
-}
-.hm-btn-ghost:hover { color: var(--color-hm-text); background: var(--color-hm-card); }
-.hm-btn-danger { background: rgba(244,63,94,0.15); color: #f43f5e; border: 1px solid rgba(244,63,94,0.3); }
-.hm-btn-danger:hover { background: rgba(244,63,94,0.25); }
-
-/* Badge utilities */
-.hm-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 99px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-.badge-green  { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
-.badge-amber  { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
-.badge-rose   { background: rgba(244,63,94,0.15);  color: #f43f5e; border: 1px solid rgba(244,63,94,0.3);  }
-.badge-blue   { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); }
-.badge-slate  { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid rgba(100,116,139,0.3); }
-
-/* Glow accents */
-.glow-em  { box-shadow: 0 0 20px rgba(16,185,129,0.2); }
-.glow-gold{ box-shadow: 0 0 20px rgba(245,158,11,0.2); }
-
-/* Sidebar nav item */
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: var(--color-hm-muted);
-  width: 100%;
-  border: none;
-  background: transparent;
-}
-.nav-item:hover { background: var(--color-hm-card); color: var(--color-hm-text); }
-.nav-item.active { background: rgba(16,185,129,0.12); color: var(--color-hm-em); border: 1px solid rgba(16,185,129,0.2); }
-
-/* Wizard tab */
-.wiz-tab {
-  padding: 12px 20px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  color: var(--color-hm-muted);
-  background: none;
-  border-top: none;
-  border-left: none;
-  border-right: none;
-  white-space: nowrap;
-  transition: all 0.2s;
-}
-.wiz-tab:hover { color: var(--color-hm-text); }
-.wiz-tab.active { color: var(--color-hm-em); border-bottom-color: var(--color-hm-em); }
-
-/* Checkbox custom */
-.hm-checkbox {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--color-hm-em);
-  cursor: pointer;
-}
-
-/* Timeline dot */
-.tl-dot {
-  position: absolute;
-  left: -9px;
-  top: 6px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--color-hm-surface);
-  border: 2px solid var(--color-hm-border);
-  transition: border-color 0.2s;
-}
-.tl-dot.active { border-color: var(--color-hm-em); background: var(--color-hm-em); }
+.anim-up     { animation: fadeSlideUp  0.38s cubic-bezier(.16,1,.3,1) both; }
+.anim-in     { animation: fadeIn       0.22s ease both; }
+.anim-slide  { animation: slideInRight 0.35s cubic-bezier(.16,1,.3,1) both; }
+.anim-pop    { animation: popIn        0.25s cubic-bezier(.34,1.56,.64,1) both; }
