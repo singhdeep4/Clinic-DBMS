@@ -2465,25 +2465,34 @@ export default function DbmsDashboard() {
                     </div>
                   </div>
 
-                  {/* Next / Prev Tab buttons */}
-                  <div className="flex justify-between items-center py-4">
-                    <button
-                      onClick={() => setActiveTab(getPrevTab())}
-                      disabled={!getPrevTab()}
-                      className="flex items-center gap-1 bg-brand-beige hover:bg-brand-light border border-brand-light px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-30 cursor-pointer"
-                    >
-                      <ArrowLeft size={14} /> Back
-                    </button>
-                    <button
-                      onClick={() => saveCase()}
-                      className="flex items-center gap-1.5 bg-brand-secondary text-brand-beige hover:bg-brand-primary px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shadow-md cursor-pointer"
-                    >
-                      <Save size={14} /> Save Patient Case File
-                    </button>
-                  </div>
-
                 </div>
               )}
+
+              {/* Next / Prev Tab buttons */}
+              <div className="flex justify-between items-center py-6 border-t border-brand-light/40 mt-8">
+                <button
+                  onClick={() => setActiveTab(getPrevTab())}
+                  disabled={!getPrevTab()}
+                  className="flex items-center gap-1 bg-brand-beige hover:bg-brand-light border border-brand-light px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-30 cursor-pointer"
+                >
+                  <ArrowLeft size={14} /> Back
+                </button>
+                {getNextTab() ? (
+                  <button
+                    onClick={() => setActiveTab(getNextTab())}
+                    className="flex items-center gap-1.5 bg-brand-primary text-brand-beige hover:bg-brand-secondary px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shadow-md cursor-pointer"
+                  >
+                    Next <ArrowRight size={14} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => saveCase()}
+                    className="flex items-center gap-1.5 bg-brand-secondary text-brand-beige hover:bg-brand-primary px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shadow-md cursor-pointer"
+                  >
+                    <Save size={14} /> Save Patient Case File
+                  </button>
+                )}
+              </div>
 
             </div>
           )}
