@@ -639,6 +639,18 @@ export default function DbmsDashboard() {
       const updatedVisits = [activeVisit, ...(currentCase.visits || [])];
 
       // 2. Prepare the new active case state
+      const activeComplaintsProgress = currentCase.complaintsProgress || {};
+      const remainingComplaints = (currentCase.complaints || []).filter(c => {
+        if (!c.text) return false;
+        const progressKey = c.text.trim();
+        return activeComplaintsProgress[progressKey] !== "Cured";
+      });
+
+      // If all complaints are cured, initialize with at least one empty complaint row so the form has a row
+      const nextComplaints = remainingComplaints.length > 0 
+        ? remainingComplaints.map(c => ({ text: c.text, onsetDate: c.onsetDate })) 
+        : [{ text: "", onsetDate: "" }];
+
       const updatedCase = {
         ...currentCase,
         visitDate: new Date().toISOString(),
@@ -647,6 +659,7 @@ export default function DbmsDashboard() {
         followUpSymptoms: "Same",
         followUpAgni: "Same",
         followUpTreatment: "Continued",
+        complaints: nextComplaints,
         complaintsProgress: {},
         visits: updatedVisits
       };
