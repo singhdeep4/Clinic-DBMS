@@ -1020,7 +1020,6 @@ export default function DbmsDashboard() {
   // Filtered cases list sidebar search
   const filteredCasesList = savedCases.filter(c => 
     (c.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (c.mobile || "").includes(searchTerm) ||
     (c.patientId || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -1400,7 +1399,7 @@ export default function DbmsDashboard() {
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-secondary/80 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Search Name/Mobile..."
+                  placeholder="Search Name/ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full bg-brand-beige border border-brand-light/60 pl-8 pr-4 py-2 rounded-lg text-xs focus:outline-none focus:border-brand-secondary"
