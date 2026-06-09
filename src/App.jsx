@@ -6,7 +6,6 @@ import Home from "./pages/Home";
 import DbmsDashboard from "./pages/DbmsDashboard";
 import Login from "./pages/Login";
 
-// Component to scroll to top on route change
 function ScrollToTop() {
   const { pathname, search } = useLocation();
   useEffect(() => {
@@ -15,22 +14,30 @@ function ScrollToTop() {
   return null;
 }
 
+// Wrapper: Only show Navbar+Footer on public pages, not on doctor portal
+function AppShell({ children, publicPage }) {
+  if (publicPage) {
+    return (
+      <div className="flex flex-col min-h-screen bg-brand-beige text-brand-dark font-sans">
+        <Navbar />
+        <main className="flex-grow">{children}</main>
+        <Footer />
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 export default function App() {
   return (
     <Router>
       <ScrollToTop />
-      <div className="flex flex-col min-h-screen bg-brand-beige text-brand-dark font-sans selection:bg-brand-light selection:text-brand-primary">
-        <Navbar />
-        <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/doctor" element={<DbmsDashboard />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
+      <Routes>
+        <Route path="/" element={<AppShell publicPage><Home /></AppShell>} />
+        <Route path="/login" element={<AppShell publicPage><Login /></AppShell>} />
+        <Route path="/doctor" element={<AppShell><DbmsDashboard /></AppShell>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </Router>
   );
 }
