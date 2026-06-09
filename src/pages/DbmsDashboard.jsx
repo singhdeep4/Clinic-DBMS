@@ -148,6 +148,35 @@ const DEFAULT_STATE = {
   visits: []
 };
 
+// Helper to calculate overall outcome score based on symptom progress status
+const calculateAutoOutcomeScore = (progressObj, previousComplaints) => {
+  if (!previousComplaints || previousComplaints.length === 0) return "3";
+  
+  let totalScore = 0;
+  let validCount = 0;
+  
+  previousComplaints.forEach(c => {
+    if (!c.text || !c.text.trim()) return;
+    const progressKey = c.text.trim();
+    const status = progressObj[progressKey] || "Stable";
+    
+    let score = 3; // default Stable
+    if (status === "Cured") score = 5;
+    else if (status === "Improved") score = 4;
+    else if (status === "Stable") score = 3;
+    else if (status === "Worse") score = 1.5; // average between 1 (worsened) and 2 (no relief)
+    
+    totalScore += score;
+    validCount++;
+  });
+  
+  if (validCount === 0) return "3";
+  const average = totalScore / validCount;
+  
+  // Return nearest integer score as a string
+  return String(Math.round(average));
+};
+
 export default function DbmsDashboard() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -1797,11 +1826,25 @@ export default function DbmsDashboard() {
                                   <div className="space-y-1.5">
                                     <h4 className="font-bold text-brand-primary text-[10px] uppercase tracking-wider">Chief Complaints:</h4>
                                     <ul className="list-disc list-inside text-brand-dark/80 space-y-0.5 pl-1">
-                                      {(v.complaints || []).filter(c => c.text).map((c, i) => (
-                                        <li key={i} className="list-item">
-                                          {c.text} {c.onsetDate ? `(since ${getDurationString(c.onsetDate)})` : ""}
-                                        </li>
-                                      ))}
+                                      {(v.complaints || []).filter(c => c.text).map((c, i) => {
+                                        const progressVal = v.complaintsProgress?.[c.text.trim()];
+                                        return (
+                                          <li key={i} className="list-item">
+                                            <span>{c.text}</span>
+                                            {progressVal && (
+                                              <span className={`ml-2 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${
+                                                progressVal === "Cured" ? "bg-green-50 text-green-700 border border-green-200" :
+                                                progressVal === "Improved" ? "bg-blue-50 text-blue-700 border border-blue-200" :
+                                                progressVal === "Stable" ? "bg-amber-50 text-amber-700 border border-amber-250" :
+                                                "bg-rose-50 text-rose-700 border border-rose-250"
+                                              }`}>
+                                                {progressVal}
+                                              </span>
+                                            )}
+                                            {c.onsetDate ? ` (since ${getDurationString(c.onsetDate)})` : ""}
+                                          </li>
+                                        );
+                                      })}
                                       {(v.complaints || []).filter(c => c.text).length === 0 && (
                                         <li className="list-item italic text-brand-dark/50">Routine consult / General follow-up</li>
                                       )}
@@ -1871,7 +1914,12 @@ export default function DbmsDashboard() {
                                     onClick={() => {
                                       const updatedProgress = { ...(currentCase.complaintsProgress || {}) };
                                       updatedProgress[progressKey] = status;
-                                      setCurrentCase({ ...currentCase, complaintsProgress: updatedProgress });
+                                      const newScore = calculateAutoOutcomeScore(updatedProgress, currentCase.visits[0].complaints);
+                                      setCurrentCase({ 
+                                        ...currentCase, 
+                                        complaintsProgress: updatedProgress,
+                                        outcomeScore: newScore
+                                      });
                                     }}
                                     className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer border ${
                                       currentProgress === status
@@ -3172,9 +3220,24 @@ export default function DbmsDashboard() {
                         <div>
                           <strong className="text-[9px] uppercase tracking-wider text-brand-secondary block">Complaints:</strong>
                           <ul className="list-disc pl-4 text-brand-dark/80 space-y-0.5">
-                            {v.complaints.map((c, i) => (
-                              <li key={i}>{c.text}</li>
-                            ))}
+                            {v.complaints.map((c, i) => {
+                              const progressVal = v.complaintsProgress?.[c.text.trim()];
+                              return (
+                                <li key={i} className="list-item">
+                                  <span>{c.text}</span>
+                                  {progressVal && (
+                                    <span className={`ml-2 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${
+                                      progressVal === "Cured" ? "bg-green-50 text-green-700 border border-green-250" :
+                                      progressVal === "Improved" ? "bg-blue-50 text-blue-700 border border-blue-250" :
+                                      progressVal === "Stable" ? "bg-amber-50 text-amber-750 border border-amber-200" :
+                                      "bg-rose-50 text-rose-700 border border-rose-250"
+                                    }`}>
+                                      {progressVal}
+                                    </span>
+                                  )}
+                                </li>
+                              );
+                            })}
                           </ul>
                         </div>
                       )}
