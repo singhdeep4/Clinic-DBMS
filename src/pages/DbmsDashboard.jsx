@@ -1598,12 +1598,21 @@ export default function DbmsDashboard() {
             {viewMode === "clinical" && (
               <>
                 {currentCase.patientId && (
-                  <button
-                    onClick={() => setShowHistoryDrawer(true)}
-                    className="flex items-center gap-1.5 bg-brand-cream border border-brand-light/60 text-brand-primary hover:bg-brand-light/35 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm cursor-pointer"
-                  >
-                    <History size={14} /> History Summary
-                  </button>
+                  <>
+                    <button
+                      onClick={() => setShowHistoryDrawer(true)}
+                      className="flex items-center gap-1.5 bg-brand-cream border border-brand-light/60 text-brand-primary hover:bg-brand-light/35 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm cursor-pointer"
+                    >
+                      <History size={14} /> History Summary
+                    </button>
+                    <button
+                      onClick={handleRecordNewVisit}
+                      className="flex items-center gap-1.5 bg-brand-primary text-brand-beige hover:bg-brand-secondary px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shadow-sm cursor-pointer"
+                      title="Archive current visit and start new follow-up"
+                    >
+                      <Plus size={14} /> Record Follow-up
+                    </button>
+                  </>
                 )}
                 <button
                   onClick={saveCase}
