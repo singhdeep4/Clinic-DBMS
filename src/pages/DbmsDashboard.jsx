@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   Lock, User, FileText, Activity, ShieldAlert, Heart, Plus, Trash2, 
   Search, Printer, Save, RefreshCw, LogOut, Check, PlusCircle, ArrowLeft, ArrowRight,
-  Database, BarChart3, Bell, Shield, Download, Upload, AlertTriangle, Calendar, MessageCircle, Menu
+  Database, BarChart3, Bell, Shield, Download, Upload, AlertTriangle, Calendar, MessageCircle, Menu, History
 } from "lucide-react";
 import SEO from "../components/SEO";
 import { 
@@ -154,6 +154,7 @@ export default function DbmsDashboard() {
   const [isPrintMode, setIsPrintMode] = useState(false);
   const [notification, setNotification] = useState("");
   const [showSidebar, setShowSidebar] = useState(window.innerWidth >= 1024);
+  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -1503,6 +1504,14 @@ export default function DbmsDashboard() {
             )}
             {viewMode === "clinical" && (
               <>
+                {currentCase.patientId && (
+                  <button
+                    onClick={() => setShowHistoryDrawer(true)}
+                    className="flex items-center gap-1.5 bg-brand-cream border border-brand-light/60 text-brand-primary hover:bg-brand-light/35 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm cursor-pointer"
+                  >
+                    <History size={14} /> History Summary
+                  </button>
+                )}
                 <button
                   onClick={saveCase}
                   className="flex items-center gap-1.5 bg-brand-secondary text-brand-beige hover:bg-brand-primary px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shadow-sm cursor-pointer"
@@ -2892,6 +2901,195 @@ export default function DbmsDashboard() {
           </button>
         </div>
       )}
+
+      {/* Patient History Collapsible Drawer */}
+      {showHistoryDrawer && (
+        <div 
+          className="fixed inset-0 bg-brand-dark/25 backdrop-blur-xs z-40 transition-opacity duration-300"
+          onClick={() => setShowHistoryDrawer(false)}
+        />
+      )}
+
+      <div className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[460px] bg-brand-cream border-l border-brand-light/60 shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
+        showHistoryDrawer ? "translate-x-0" : "translate-x-full"
+      }`}>
+        {/* Drawer Header */}
+        <div className="p-5 border-b border-brand-light/60 flex justify-between items-center bg-brand-cream/95 backdrop-blur-xs sticky top-0 z-10 shrink-0">
+          <div>
+            <h3 className="font-serif font-bold text-brand-primary text-base">Patient Clinical History</h3>
+            <p className="text-[10px] text-brand-secondary font-semibold uppercase">{currentCase.name} ({currentCase.patientId})</p>
+          </div>
+          <button 
+            onClick={() => setShowHistoryDrawer(false)}
+            className="text-brand-dark hover:text-red-600 p-2 cursor-pointer font-bold text-xs uppercase tracking-widest transition-colors"
+          >
+            ✕ Close
+          </button>
+        </div>
+
+        {/* Drawer Content */}
+        <div className="flex-grow overflow-y-auto p-5 space-y-6">
+          
+          {/* 1. Demographics & Chronics Lock */}
+          <div className="bg-brand-beige/20 border border-brand-light/45 p-4.5 rounded-2xl space-y-3 shadow-xs">
+            <span className="text-[9px] font-extrabold uppercase tracking-widest text-brand-secondary block">
+              Patient Registry Card
+            </span>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-gray-400 block text-[9px] uppercase font-bold">Age & Gender</span>
+                <span className="font-bold text-brand-primary">{currentCase.age || "N/A"} Yrs / {currentCase.gender}</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block text-[9px] uppercase font-bold">Contact Mobile</span>
+                <span className="font-bold text-brand-primary">{currentCase.mobile || "N/A"}</span>
+              </div>
+              <div className="col-span-2 pt-1.5 border-t border-brand-light/20 mt-1">
+                <span className="text-gray-400 block text-[9px] uppercase font-bold">Past Chronic History Checklist</span>
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {Object.entries(currentCase.pastHistory || {})
+                    .filter(([key, val]) => val && key !== "others")
+                    .map(([key]) => (
+                      <span key={key} className="bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase">
+                        {key === "htn" ? "Hypertension" : key}
+                      </span>
+                    ))}
+                  {currentCase.pastHistory?.others && (
+                    <span className="bg-brand-light/35 text-brand-primary border border-brand-secondary/15 px-2 py-0.5 rounded-full text-[9px] font-bold">
+                      {currentCase.pastHistory.others}
+                    </span>
+                  )}
+                  {Object.entries(currentCase.pastHistory || {}).filter(([k, v]) => v).length === 0 && (
+                    <span className="text-gray-400 italic text-[11px]">No active conditions in checklist</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. All Historical Problems (Extracted from all visits) */}
+          <div className="space-y-2">
+            <span className="text-[9px] font-extrabold uppercase tracking-widest text-brand-secondary block">
+              All Symptoms & Complaints (Aggregated)
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {(() => {
+                const uniqueProblems = new Set();
+                
+                // Add current active complaints
+                (currentCase.complaints || []).forEach(c => {
+                  if (c.text?.trim()) uniqueProblems.add(c.text.trim().toLowerCase());
+                });
+
+                // Add past visit complaints
+                (currentCase.visits || []).forEach(v => {
+                  (v.complaints || []).forEach(c => {
+                    if (c.text?.trim()) uniqueProblems.add(c.text.trim().toLowerCase());
+                  });
+                });
+
+                if (uniqueProblems.size === 0) {
+                  return <span className="text-xs text-brand-dark/50 italic font-sans">No complaints logged yet.</span>;
+                }
+
+                return Array.from(uniqueProblems).map((problem, idx) => (
+                  <span 
+                    key={idx} 
+                    className="bg-brand-primary/10 border border-brand-light text-brand-primary px-2.5 py-1 rounded-xl text-xs font-bold capitalize"
+                  >
+                    {problem}
+                  </span>
+                ));
+              })()}
+            </div>
+          </div>
+
+          {/* 3. Detailed Visit History Timeline */}
+          <div className="space-y-3.5">
+            <span className="text-[9px] font-extrabold uppercase tracking-widest text-brand-secondary block">
+              Archived Visit Timeline ({currentCase.visits?.length || 0})
+            </span>
+            
+            {(!currentCase.visits || currentCase.visits.length === 0) ? (
+              <div className="text-center py-8 border border-dashed border-brand-light/60 rounded-2xl text-xs text-brand-dark/40 font-sans italic">
+                No historical visits recorded. Follow-up entries appear here once archived.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {currentCase.visits.map((v, idx) => (
+                  <div key={v.visitId || idx} className="bg-brand-beige/15 border border-brand-light/35 p-4 rounded-2xl space-y-3 hover:shadow-xs transition-shadow">
+                    
+                    <div className="flex justify-between items-center flex-wrap gap-1.5 border-b border-brand-light/20 pb-1.5">
+                      <span className="font-serif font-bold text-brand-primary text-xs">
+                        {new Date(v.visitDate).toLocaleDateString("en-US", { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                          v.outcomeScore >= 4 ? "bg-green-50 text-green-700 border border-green-200" :
+                          v.outcomeScore === 3 ? "bg-amber-50 text-amber-700 border border-amber-250" :
+                          "bg-rose-50 text-rose-700 border border-rose-250"
+                        }`}>
+                          Progress: {v.outcomeScore}/5
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => copyPastVisitDetails(v)}
+                          className="text-[9px] font-extrabold text-brand-primary hover:text-brand-secondary border border-brand-primary/20 px-2 py-0.5 rounded-lg transition-colors bg-white flex items-center gap-1 uppercase cursor-pointer"
+                          title="Copy prescriptions to active editor"
+                        >
+                          <RefreshCw size={8} /> Copy Rx
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-xs font-sans">
+                      <div>
+                        <strong className="text-[9px] uppercase tracking-wider text-brand-secondary block">Diagnosis:</strong>
+                        <span className="font-semibold text-brand-dark/85">
+                          {v.prakriti} ({v.vikriti} Imbalance) • {v.agni} Agni • {v.avastha}
+                        </span>
+                      </div>
+
+                      {v.complaints && v.complaints.filter(c => c.text).length > 0 && (
+                        <div>
+                          <strong className="text-[9px] uppercase tracking-wider text-brand-secondary block">Complaints:</strong>
+                          <ul className="list-disc pl-4 text-brand-dark/80 space-y-0.5">
+                            {v.complaints.map((c, i) => (
+                              <li key={i}>{c.text}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {v.medicines && v.medicines.filter(m => m.name).length > 0 && (
+                        <div>
+                          <strong className="text-[9px] uppercase tracking-wider text-brand-secondary block">Advised Rx:</strong>
+                          <div className="bg-white/80 border border-brand-light/30 rounded-xl p-2 font-mono text-[10px] text-brand-dark/90 mt-1 max-h-[100px] overflow-y-auto space-y-0.5">
+                            {v.medicines.map((m, i) => (
+                              <div key={i} className="truncate">
+                                • {m.name} ({m.dose} — {m.kala})
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {v.notes && (
+                        <div>
+                          <strong className="text-[9px] uppercase tracking-wider text-brand-secondary block">Diet & Notes:</strong>
+                          <p className="italic text-brand-dark/75">"{v.notes}"</p>
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 }
